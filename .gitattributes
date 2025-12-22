@@ -1,2 +1,12 @@
+* text=auto
+*.py text eol=lf
+*.md text eol=lf
+*.sh text eol=lf
+*.bat text eol=crlf
+\n+# Ensure binary files are not treated as text
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
 # Auto detect text files and perform LF normalization
 * text=auto
