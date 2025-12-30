@@ -1,6 +1,6 @@
 import os
 from langchain_community.document_loaders import TextLoader, DirectoryLoader
-from langchain_text_splitters import CharacterTextSplitter
+from langchain_text_splitters import CharacterTextSplitter, RecursiveCharacterTextSplitter
 from langchain_chroma import Chroma
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
 from dotenv import load_dotenv
@@ -46,11 +46,12 @@ def split_documents(documents, chunk_size= 500, chunk_overlap=0):
 
     print("Splitting Documents into chunks....")
 
-    text_splitter = CharacterTextSplitter(# Set chunk size and overlap
+    Recursivetext_splitter = RecursiveCharacterTextSplitter(# Set chunk size and overlap
+        separator=["\n\n","\n",".",","," "],
         chunk_size=chunk_size,
         chunk_overlap=chunk_overlap
     )
-    chunks = text_splitter.split_documents(documents)# Split the documents
+    chunks = Recursivetext_splitter.split_documents(documents)# Split the documents
 
     if chunks:# If chunks were created, print some info
         for i, chunk in enumerate(chunks[:2]):
