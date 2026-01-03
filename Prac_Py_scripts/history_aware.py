@@ -8,7 +8,7 @@ load_dotenv()
 
 # Connect to your document database
 persistent_directory = "db/chroma_db"
-embeddings = GoogleGenerativeAIEmbeddings(model="text-embedding-3-small")
+embeddings = GoogleGenerativeAIEmbeddings(model="text-embedding-004")
 db = Chroma(persist_directory=persistent_directory, embedding_function=embeddings)
 
 # Set up AI model
