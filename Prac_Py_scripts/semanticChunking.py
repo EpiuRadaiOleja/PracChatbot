@@ -39,12 +39,12 @@ def Semantictext_splitter(documents):
         breakpoint_threshold_type="percentile",
         breakpoint_threshold_amount = 70
     )
-    semantic_chunks = semantic_splitter.split_text(documents)
+    semantic_chunks = semantic_splitter.split_documents(documents)
     print("SEMANTIC CHUNKING RESULTS:")
     print("=" * 50)
     for i, chunk in enumerate(semantic_chunks, 1):
-        print(f"Chunk {i}: ({len(chunk)} chars)")
-        print(f'"{chunk}"')
+        print(f"Chunk {i}: ({len(chunk.page_content)} chars)")
+        print(f'"{chunk.page_content}"')
         print()
     return semantic_chunks
 
@@ -54,7 +54,7 @@ def main():
 
     documents= document_loader(docs_path="docs")
 
-    chunks = Semantictext_splitter(documents)
+    myChunks = Semantictext_splitter(documents)
 
 
 
