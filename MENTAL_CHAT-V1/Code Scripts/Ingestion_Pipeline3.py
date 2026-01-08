@@ -1,12 +1,13 @@
-import os 
+import os
+from pathlib import Path
 
 # Unstructured for document parsing
 from langchain_unstructured import UnstructuredLoader
 from unstructured.cleaners.core import clean_extra_whitespace
+from langchain_community.document_loaders import CSVLoader
 
 # LangChain components
-from langchain_community.document_loaders import DirectoryLoader, CSVLoader
-from langchain_google_genai import  GoogleGenerativeAIEmbeddings
+from langchain_google_genai import GoogleGenerativeAIEmbeddings
 from langchain_chroma import Chroma
 from langchain_community.vectorstores.utils import filter_complex_metadata
 from dotenv import load_dotenv
@@ -14,72 +15,72 @@ from dotenv import load_dotenv
 load_dotenv()
 
 DOCUMENT_PATH = r"E:\GitHub Repoz\AI chatBot Practice\PracChatbot\MENTAL_CHAT-V1\Knowledge_Base"
- 
+CHROMA_PATH = r"E:\GitHub Repoz\AI chatBot Practice\PracChatbot\MENTAL_CHAT-V1\VecDBs"
+
 def load_pdf_documents(docs_path=DOCUMENT_PATH):
+    """Load PDF documents using UnstructuredLoader with chunking by title."""
     abs_path = os.path.abspath(docs_path)
     print(f"Scanning directory: {abs_path}")
 
     if not os.path.exists(abs_path):
         raise FileNotFoundError(f"The directory {abs_path} does not exist!")
 
-    # DirectoryLoader handles the folder; UnstructuredLoader handles the PDF logic
-    loader = DirectoryLoader(
-        path=abs_path,
-        glob="**/*.pdf",
-        loader_cls=UnstructuredLoader,
-        loader_kwargs={
-            "strategy": "hi_res", # High-quality parsing
-            "chunking_strategy": "by_title",
-            "max_characters": 2000,
-            "combine_text_under_n_chars": 500,
-            "languages": ["eng"],
-            "post_processors":[clean_extra_whitespace]
-        },
-        show_progress=True,
-        use_multithreading=True
-    )
-
-    print("Partitioning documents (this may take a moment for hi_res)...")
-    pdf_documents = loader.load()
+    # Get all PDF files in the directory and subdirectories
+    pdf_files = list(Path(abs_path).rglob("*.pdf")) + list(Path(abs_path).rglob("*.PDF"))
+    all_documents = []
     
-    print(f"Successfully loaded {len(pdf_documents)} document chunks.")
+    print(f"Found {len(pdf_files)} PDF files to process...")
+    
+    for pdf_file in pdf_files:
+        print(f"Processing: {pdf_file.name}")
+        
+        try:
+            # Load each PDF file individually with UnstructuredLoader
+            loader = UnstructuredLoader(
+                file_path=str(pdf_file),
+                strategy="hi_res",  # High-quality parsing
+                chunking_strategy="by_title",
+                max_characters=2000,
+                combine_text_under_n_chars=500,
+                languages=["eng"],
+                post_processors=[clean_extra_whitespace]
+            )
+            
+            documents = loader.load()
+            all_documents.extend(documents)
+            
+        except Exception as e:
+            print(f"Error processing {pdf_file}: {e}")
+            continue
 
-    if len(pdf_documents) > 0:
-        # Preview the first chunk
-        print(f"\nExample Metadata: {pdf_documents[0].metadata}")
-        print(f"Example Content: {pdf_documents[0].page_content[:150]}...")
-
-    return pdf_documents
-
+    print(f"Successfully loaded {len(all_documents)} document chunks from {len(pdf_files)} PDF files.")
+    return all_documents
 
 def load_csv_documents(docs_path=DOCUMENT_PATH):
     """Load CSV documents using CSVLoader."""
     abs_path = os.path.abspath(docs_path)
-    print(f"Scanning directory for CSVs: {abs_path}")
-
-    if not os.path.exists(abs_path):
-        raise FileNotFoundError(f"The directory {abs_path} does not exist!")
-
-    # DirectoryLoader handles the folder; CSVLoader handles the CSV logic
-    loader = DirectoryLoader(
-        path=abs_path,
-        glob="**/*.{csv,CSV}",
-        loader_cls=CSVLoader,
-        show_progress=True,
-        use_multithreading=True
-    )
-
-    print("Loading CSV documents...")
-    csv_documents = loader.load()
     
-    print(f"Successfully loaded {len(csv_documents)} CSV document chunks.")
+    # Get all CSV files in the directory and subdirectories
+    csv_files = list(Path(abs_path).rglob("*.csv")) + list(Path(abs_path).rglob("*.CSV"))
+    all_documents = []
+    
+    print(f"Found {len(csv_files)} CSV files to process...")
+    
+    for csv_file in csv_files:
+        print(f"Processing: {csv_file.name}")
+        
+        try:
+            # Load CSV file
+            loader = CSVLoader(file_path=str(csv_file))
+            documents = loader.load()
+            all_documents.extend(documents)
+            
+        except Exception as e:
+            print(f"Error processing {csv_file}: {e}")
+            continue
 
-    if len(csv_documents) > 0:
-        # Preview the first chunk
-        print(f"\nExample Metadata: {csv_documents[0].metadata}")
-        print(f"Example Content: {csv_documents[0].page_content[:150]}...")
-
-    return csv_documents
+    print(f"Successfully loaded {len(all_documents)} document chunks from {len(csv_files)} CSV files.")
+    return all_documents
 
 def load_all_documents(docs_path=DOCUMENT_PATH):
     """Load both PDF and CSV documents."""
@@ -101,10 +102,6 @@ def load_all_documents(docs_path=DOCUMENT_PATH):
 
     return all_documents
 
-#Vector store method 
-# Defining the vecDB specific absolute path
-CHROMA_PATH = r"E:\GitHub Repoz\AI chatBot Practice\PracChatbot\MENTAL_CHAT-V1\VecDBs"
-
 def create_vectorStore(chunks, persist_directory=CHROMA_PATH):
     """Creates and persists ChromaDB vector store at the specified absolute path"""
     print(f"Creating embeddings and storing in ChromaDB at: {persist_directory}")
@@ -118,7 +115,7 @@ def create_vectorStore(chunks, persist_directory=CHROMA_PATH):
 
     embedding_model = GoogleGenerativeAIEmbeddings(model="models/text-embedding-004")
     
-    # 2. Creating ChromaDB store
+    # Creating ChromaDB store
     vectorStore = Chroma.from_documents(
         documents=cleaned_chunks,
         embedding=embedding_model,
@@ -129,8 +126,6 @@ def create_vectorStore(chunks, persist_directory=CHROMA_PATH):
     print("--- Finished creating vector store ---")
     print(f"Vector store is now persistent at {persist_directory}")
     return vectorStore
-  
-
 
 def main():
     try:
