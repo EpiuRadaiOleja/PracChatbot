@@ -9,3 +9,6 @@ venv/
 \n+# Byte-compiled / cache
 __pycache__/
 .venv/
+MENTAL_CHAT-V1/VecDBs
+MENTAL_CHAT-V1/Knowledge_Base
+chroma_db
