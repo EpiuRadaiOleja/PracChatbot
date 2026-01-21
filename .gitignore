@@ -12,3 +12,4 @@ __pycache__/
 MENTAL_CHAT-V1/VecDBs
 MENTAL_CHAT-V1/Knowledge_Base
 chroma_db
+docs
