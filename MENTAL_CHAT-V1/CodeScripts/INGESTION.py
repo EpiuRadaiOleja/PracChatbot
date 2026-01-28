@@ -1,5 +1,6 @@
 import os
 import chromadb
+import shutil
 from tqdm import tqdm
 
 from sentence_transformers import SentenceTransformer
@@ -49,12 +50,13 @@ def split_documents(documents, chunk_size= 500, chunk_overlap=0):
 
     print("Splitting Documents into chunks....")
 
-    Recursivetext_splitter = RecursiveCharacterTextSplitter(# Set chunk size and overlap
+    Recursivetext_splitter = RecursiveCharacterTextSplitter(
         separator=["\n\n","\n",".",","," "],
         chunk_size=chunk_size,
         chunk_overlap=chunk_overlap
     )
-    chunks = Recursivetext_splitter.split_documents(documents)# Split the documents
+    # Split the documents
+    chunks = Recursivetext_splitter.split_documents(documents)
 
     if chunks:# If chunks were created, print some info
         for i, chunk in enumerate(tqdm(chunks[:2])):
@@ -90,10 +92,16 @@ def create_vectorStore(chunks,persist_directory="chroma_vecStore"):
     return vectorStore
 
 def main():
+    db_path ="chroma_vecStore"
 
-    # Load documents from the 'docs' directory
+    if os.path.exists(db_path):
+        print("Cleaning old DB")
+        shutil.rmtree(db_path)
+        
     print("Loading documents...")
+    
     documents = load_documents(docs_path ="source_pdfs")
+
 
     #Chunking section
     chunks = split_documents(documents)
@@ -101,6 +109,6 @@ def main():
     #creating and storing in chromaDB
     vectorStoring = create_vectorStore(chunks)
 
-# Now this is OUTSIDE the function and will run automatically
+
 if __name__ == "__main__":
     main()
