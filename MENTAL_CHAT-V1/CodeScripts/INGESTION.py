@@ -1,26 +1,24 @@
 import os
-import chromadb
 import shutil
 from tqdm import tqdm
-
+from chromadb.utils.batch_utils import create_batches
 from sentence_transformers import SentenceTransformer
 
 from langchain_community.document_loaders import DirectoryLoader, PDFPlumberLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain_core.documents import Document
-from dotenv import load_dotenv
+import chromadb
 
-load_dotenv()
+
 
 #Document loader method
 def load_documents(docs_path ="source_pdfs"):
     print(f"Loading documents from {docs_path}...")
 
-    #Check if the directory exists
+    
     if not os.path.exists(docs_path):
         raise FileNotFoundError(f"The directory {docs_path} does not exist.")
     
-    # Load all text files from the specified directory
+    
     loader = DirectoryLoader(
         path = docs_path,
           glob="*.pdf", 
@@ -28,7 +26,7 @@ def load_documents(docs_path ="source_pdfs"):
           show_progress = True
     )
 
-    documents = loader.load() # Load documents  
+    documents = loader.load() 
     
     print(f"Loaded {len(documents)} documents.")
 
@@ -51,14 +49,14 @@ def split_documents(documents, chunk_size= 500, chunk_overlap=0):
     print("Splitting Documents into chunks....")
 
     Recursivetext_splitter = RecursiveCharacterTextSplitter(
-        separator=["\n\n","\n",".",","," "],
+        separators=["\n\n","\n",".",","," "],
         chunk_size=chunk_size,
         chunk_overlap=chunk_overlap
     )
-    # Split the documents
+    
     chunks = Recursivetext_splitter.split_documents(documents)
 
-    if chunks:# If chunks were created, print some info
+    if chunks:
         for i, chunk in enumerate(tqdm(chunks[:2])):
             print(f"\n---chunk{i+1}---")
             print(f"Source: {chunk.metadata['source']}")
@@ -71,25 +69,40 @@ def split_documents(documents, chunk_size= 500, chunk_overlap=0):
     return chunks
 
 #Vector store method 
-def create_vectorStore(chunks,persist_directory="chroma_vecStore"):
+ 
+
+def create_vectorStore(chunks, persist_directory="chroma_vecStore"):
+
+    print("Creating embeddings....")
+    model = SentenceTransformer('sentence-transformers/all-MiniLM-L6-V2')
+    client = chromadb.PersistentClient(path=persist_directory)
+    collection = client.get_or_create_collection(name="pdf_collection")
+
     
-    print("Creating embeddings and storing in ChromaDB")
+    ids = [f"id_{i}" for i in range(len(chunks))]
+    texts = [chunk.page_content for chunk in chunks]
+    metadatas = [chunk.metadata for chunk in chunks]
 
-    embedding_model = SentenceTransformer('sentence-transfomers/all-MiniLM-L6-V2')
+    embeddings = model.encode(texts, show_progress_bar=True).tolist()
 
-    #Creating CgromaDB store
-    with tqdm(total=1, desc="Processing Vector Store") as pbar:
-        vectorStore = chromadb.from_documents(
-            documents=chunks,
-            embedding=embedding_model,
-            persist_directory=persist_directory,
-            collection_metadata={"hnsw:space":"cosine"}
+    batches = create_batches(
+        api=client, 
+        ids=ids, 
+        embeddings=embeddings, 
+        documents=texts, 
+        metadatas=metadatas
+    )
+
+    for batch in tqdm(batches):
+        collection.add(
+            ids=batch[0],
+            embeddings=batch[1],
+            metadatas=batch[2],
+            documents=batch[3]
         )
-    
-    pbar.update(1)
 
-    print(f"Vector store created and stored to {persist_directory}")
-    return vectorStore
+    print(f"Vector store created successfully!")
+    return collection
 
 def main():
     db_path ="chroma_vecStore"
@@ -97,16 +110,14 @@ def main():
     if os.path.exists(db_path):
         print("Cleaning old DB")
         shutil.rmtree(db_path)
-        
+
     print("Loading documents...")
     
     documents = load_documents(docs_path ="source_pdfs")
 
 
-    #Chunking section
     chunks = split_documents(documents)
 
-    #creating and storing in chromaDB
     vectorStoring = create_vectorStore(chunks)
 
 
