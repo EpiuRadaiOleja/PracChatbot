@@ -9,9 +9,6 @@ from langchain_community.document_loaders import PDFPlumberLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 import chromadb
 
-
-
-
 # Document loader method with metadata
 def load_documents_with_metadata(docs_path="source_pdfs", meta_csv="source_pdfs/src_pdfs.csv"):
     print(f"Loading documents from {docs_path} with metadata from {meta_csv}...")
@@ -21,12 +18,13 @@ def load_documents_with_metadata(docs_path="source_pdfs", meta_csv="source_pdfs/
     if not os.path.exists(meta_csv):
         raise FileNotFoundError(f"The metadata CSV {meta_csv} does not exist.")
 
+
     meta = pd.read_csv(meta_csv)
-    if 'PDF NAME' not in meta.columns:
-        raise ValueError("The metadata CSV must have a 'PDF NAME' column.")
+    if 'PDF_PATH' not in meta.columns:
+        raise ValueError("The metadata CSV must have a 'PDF_PATH' column with the exact PDF filenames.")
 
     pdf_files = [f for f in os.listdir(docs_path) if f.endswith('.pdf')]
-    meta_pdfs = meta['PDF NAME'].tolist()
+    meta_pdfs = meta['PDF_PATH'].tolist()
     matching_pdfs = [pdf for pdf in meta_pdfs if pdf in pdf_files]
 
     if not matching_pdfs:
@@ -36,13 +34,13 @@ def load_documents_with_metadata(docs_path="source_pdfs", meta_csv="source_pdfs/
     for pdf_file in tqdm(matching_pdfs, desc="Loading PDFs"):
         pdf_path = os.path.join(docs_path, pdf_file)
         try:
-            with PDFPlumberLoader(pdf_path) as loader:
-                loaded_docs = loader.load()
-                # Attach metadata from CSV to each document
-                file_meta = meta[meta['PDF NAME'] == pdf_file].iloc[0].to_dict()
-                for doc in loaded_docs:
-                    doc.metadata.update(file_meta)
-                documents.extend(loaded_docs)
+            loader = PDFPlumberLoader(pdf_path)
+            loaded_docs = loader.load()
+            # Attach metadata from CSV to each document
+            file_meta = meta[meta['PDF_PATH'] == pdf_file].iloc[0].to_dict()
+            for doc in loaded_docs:
+                doc.metadata.update(file_meta)
+            documents.extend(loaded_docs)
         except Exception as e:
             print(f"Failed to load {pdf_file}: {e}")
 
@@ -118,7 +116,7 @@ def create_vectorStore(chunks, persist_directory="chroma_vecStore"):
 
 def main():
     db_path = "chroma_vecStore"
-    meta_csv = "source_pdfs/src_pdfs.csv"
+    meta_csv = "/home/beijuka/Bruno/MARCONI_LAB/personal_tasks/PracChatbot/source_pdfs/src_pdfs.csv"
     if os.path.exists(db_path):
         print("Cleaning old DB")
         shutil.rmtree(db_path)
