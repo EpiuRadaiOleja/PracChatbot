@@ -36,7 +36,6 @@ def load_documents_with_metadata(docs_path="source_pdfs", meta_csv="source_pdfs/
         try:
             loader = PDFPlumberLoader(pdf_path)
             loaded_docs = loader.load()
-            # Attach metadata from CSV to each document
             file_meta = meta[meta['PDF_PATH'] == pdf_file].iloc[0].to_dict()
             for doc in loaded_docs:
                 doc.metadata.update(file_meta)
@@ -48,7 +47,7 @@ def load_documents_with_metadata(docs_path="source_pdfs", meta_csv="source_pdfs/
     if len(documents) == 0:
         raise ValueError("No documents were loaded. Please check the directory and file formats.")
 
-    for i, doc in enumerate(tqdm(documents[:2])):  # show preview of first 2 documents
+    for i, doc in enumerate(tqdm(documents[:2])):  
         print(f"\nDocument {i+1}:")
         print(f" Source: {doc.metadata.get('source', doc.metadata.get('PDF NAME', 'N/A'))}")
         print(f" Length: {len(doc.page_content)} characters")
@@ -58,7 +57,6 @@ def load_documents_with_metadata(docs_path="source_pdfs", meta_csv="source_pdfs/
     return documents
  
 
-# Chunking method (metadata is already attached)
 def split_documents(documents, chunk_size=1000, chunk_overlap=10):
     print("Splitting Documents into chunks....")
     Recursivetext_splitter = RecursiveCharacterTextSplitter(
@@ -75,10 +73,7 @@ def split_documents(documents, chunk_size=1000, chunk_overlap=10):
             print("-"*50)
         if len(chunks) > 5:
             print(f"\n.....and {len(chunks)-5} more chunks")
-    return chunks
-
-#Vector store method 
- 
+    return chunks 
 
 def create_vectorStore(chunks, persist_directory="chroma_vecStore"):
 
