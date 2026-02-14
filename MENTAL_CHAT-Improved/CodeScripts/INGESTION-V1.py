@@ -10,7 +10,7 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 import chromadb
 
 # Document loader method with metadata
-def load_documents_with_metadata(docs_path="source_pdfs", meta_csv="source_pdfs/src_pdfs.csv"):
+def load_documents_with_metadata(docs_path="source_pdfs", meta_csv="source_pdfs/src_pdfs_csv.csv"):
     print(f"Loading documents from {docs_path} with metadata from {meta_csv}...")
 
     if not os.path.exists(docs_path):
@@ -20,11 +20,11 @@ def load_documents_with_metadata(docs_path="source_pdfs", meta_csv="source_pdfs/
 
 
     meta = pd.read_csv(meta_csv)
-    if 'PDF_PATH' not in meta.columns:
+    if 'PDF NAME' not in meta.columns:
         raise ValueError("The metadata CSV must have a 'PDF_PATH' column with the exact PDF filenames.")
 
     pdf_files = [f for f in os.listdir(docs_path) if f.endswith('.pdf')]
-    meta_pdfs = meta['PDF_PATH'].tolist()
+    meta_pdfs = meta['PDF NAME'].tolist()
     matching_pdfs = [pdf for pdf in meta_pdfs if pdf in pdf_files]
 
     if not matching_pdfs:
