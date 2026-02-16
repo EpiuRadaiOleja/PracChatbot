@@ -1,4 +1,3 @@
-
 import os
 import shutil
 import pandas as pd
@@ -21,7 +20,7 @@ def load_documents_with_metadata(docs_path="source_pdfs", meta_csv="source_pdfs/
 
     meta = pd.read_csv(meta_csv)
     if 'PDF NAME' not in meta.columns:
-        raise ValueError("The metadata CSV must have a 'PDF_PATH' column with the exact PDF filenames.")
+        raise ValueError("The metadata CSV must have a 'PDF NAME' column with the exact PDF filenames.")
 
     pdf_files = [f for f in os.listdir(docs_path) if f.endswith('.pdf')]
     meta_pdfs = meta['PDF NAME'].tolist()
@@ -36,8 +35,10 @@ def load_documents_with_metadata(docs_path="source_pdfs", meta_csv="source_pdfs/
         try:
             loader = PDFPlumberLoader(pdf_path)
             loaded_docs = loader.load()
+
             # Attach metadata from CSV to each document
-            file_meta = meta[meta['PDF_PATH'] == pdf_file].iloc[0].to_dict()
+            file_meta = meta[meta['PDF NAME'] == pdf_file].iloc[0].to_dict()
+
             for doc in loaded_docs:
                 doc.metadata.update(file_meta)
             documents.extend(loaded_docs)
@@ -48,12 +49,6 @@ def load_documents_with_metadata(docs_path="source_pdfs", meta_csv="source_pdfs/
     if len(documents) == 0:
         raise ValueError("No documents were loaded. Please check the directory and file formats.")
 
-    for i, doc in enumerate(tqdm(documents[:2])):  # show preview of first 2 documents
-        print(f"\nDocument {i+1}:")
-        print(f" Source: {doc.metadata.get('source', doc.metadata.get('PDF NAME', 'N/A'))}")
-        print(f" Length: {len(doc.page_content)} characters")
-        print(f" Content Preview: {doc.page_content[:100]}...")
-        print(f" metadata: {doc.metadata}")
 
     return documents
  
@@ -62,19 +57,12 @@ def load_documents_with_metadata(docs_path="source_pdfs", meta_csv="source_pdfs/
 def split_documents(documents, chunk_size=1000, chunk_overlap=10):
     print("Splitting Documents into chunks....")
     Recursivetext_splitter = RecursiveCharacterTextSplitter(
-        separators=["\n\n", "\n", ".", ",", " "],
+        separators=["\n\n","\n", ".", ","],
         chunk_size=chunk_size,
         chunk_overlap=chunk_overlap
     )
     chunks = Recursivetext_splitter.split_documents(documents)
-    if chunks:
-        for i, chunk in enumerate(tqdm(chunks[:2])):
-            print(f"\n---chunk{i+1}---")
-            print(f"Source: {chunk.metadata.get('source', chunk.metadata.get('PDF NAME', 'N/A'))}")
-            print(f"Length: {len(chunk.page_content)} characters")
-            print("-"*50)
-        if len(chunks) > 5:
-            print(f"\n.....and {len(chunks)-5} more chunks")
+   
     return chunks
 
 #Vector store method 
@@ -115,11 +103,13 @@ def create_vectorStore(chunks, persist_directory="chroma_vecStore"):
 
 
 def main():
+    
     db_path = "chroma_vecStore"
-    meta_csv = "/home/beijuka/Bruno/MARCONI_LAB/personal_tasks/PracChatbot/source_pdfs/src_pdfs.csv"
+    meta_csv = "source_pdfs/src_pdfs_csv.csv"
     if os.path.exists(db_path):
         print("Cleaning old DB")
         shutil.rmtree(db_path)
+
     print("Loading documents with metadata...")
     documents = load_documents_with_metadata(docs_path="source_pdfs", meta_csv=meta_csv)
     chunks = split_documents(documents)
