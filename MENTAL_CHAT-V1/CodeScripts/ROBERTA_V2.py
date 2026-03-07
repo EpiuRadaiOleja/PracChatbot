@@ -17,36 +17,32 @@ load_dotenv()
 llm_model = ChatGoogleGenerativeAI(model="gemini-2.5-flash")
 embedding_model = SentenceTransformer('sentence-transformers/all-MiniLM-L6-V2')
 
-# --- Guardrail Initialization ---
-# Using a common RoBERTa-based toxicity model
+# Guardrail 
+
 guard_model_id = "Intel/toxic-prompt-roberta" 
 
 guard_pipe = pipeline(
         "text-classification", 
         model=guard_model_id, 
         tokenizer=guard_model_id,
-        device=-1 # Returns scores for all labels
+        device=-1 
     )
 
 client = chromadb.PersistentClient(path="chroma_vecStore")
 collection = client.get_collection("pdf_collection")
 
 def guard_rail(text: str) -> dict:
-    """
-    Evaluates the toxicity of the input text using RoBERTa.
-    Note: Roberta models usually take strings, not chat lists.
-    """
+    
     results = guard_pipe(text)[0]
     
-    # Toxicity threshold (adjust as needed, typically 0.5 to 0.7)
+    # Toxicit threshold
     THRESHOLD = 0.6 
     
-    # Identify the highest scoring 'toxic' label
     is_safe = True
     flagged_label = None
     
     for entry in results:
-        # Most toxicity models use labels like: toxic, severe_toxic, threat, insult, etc.
+    
         if entry['label'].lower() in ['toxic', 'severe_toxic', 'threat', 'insult', 'identity_hate']:
             if entry['score'] > THRESHOLD:
                 is_safe = False
@@ -73,7 +69,7 @@ def get_rag_context(query):
     return context, citations
 
 def secure_chat():
-    # Updated mapping for RoBERTa labels
+    
     LABEL_MAP = {
         "toxic": "Toxic Content",
         "severe_toxic": "Severely Toxic Content",
@@ -99,7 +95,7 @@ def secure_chat():
         user_input = input("\nUser: ")
         if user_input.lower() in ["exit", "quit"]: break
 
-        # Input Check - Roberta takes the string directly
+        # Input Check - Roberta
         guarded_result = guard_rail(user_input)
 
         if not guarded_result["is_safe"]:
@@ -120,11 +116,11 @@ def secure_chat():
             """)
             continue
 
-        # Proceed with RAG
+        # RAG
         context, citations = get_rag_context(user_input)
         response = chain.invoke({"context": context, "user_query": user_input}).content
 
-        # Output Check (Concatenate user + assistant for context)
+        # Output Check
         output_to_check = f"User: {user_input}\nAssistant: {response}"
         output_guard_result = guard_rail(output_to_check)
 

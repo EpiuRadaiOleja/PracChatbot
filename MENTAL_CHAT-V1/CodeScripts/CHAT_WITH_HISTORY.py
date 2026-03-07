@@ -36,7 +36,7 @@ def guard_rail(text: str) -> dict:
     results = guard_pipe(text, truncation=True, max_length=512)[0]
 
     is_safe = True
-    if results['label'].lower() == 'toxic' and results['score'] > 0.5:
+    if results['label'].lower() == 'toxic' and results['score'] > 0.6:
         is_safe = False
 
     return {
@@ -62,26 +62,25 @@ def get_rag_context(query: str):
 
 
 def format_chat_history(chat_history: list) -> str:
-    # Convert the chat_history list of LangChain messages into a readable string.
+    # Convert the chat_history list of LangChain messages into string.
     lines = []
     for msg in chat_history:
         role = "User" if isinstance(msg, HumanMessage) else "Assistant"
         lines.append(f"{role}: {msg.content}")
     return "\n".join(lines)
 
- # Improvements made to secure_chat() inorder to track conversation history.
+ # Added conversation history.
 def secure_chat_with_history():
    
-    # Contextualise prompt 
     # This prompt takes the chat history + latest question and produces a
     # standalone query that can be understood without prior context.
     contextualise_prompt = ChatPromptTemplate.from_messages([
         ("system",
          "Given the following conversation history and a follow-up question, "
-         "rewrite the follow-up question so it is a standalone question that "
+         "rewrite the follow up question so it is a standalone question that "
          "can be understood WITHOUT the conversation history. "
-         "Do NOT answer the question — only reformulate it if needed, "
-         "otherwise return it as-is."),
+         "Do NOT answer the question only reformulate it if needed, "
+         "otherwise return it as is."),
         MessagesPlaceholder(variable_name="chat_history"),
         ("human", "{input}")
     ])
@@ -127,7 +126,7 @@ def secure_chat_with_history():
             """)
             continue
 
-        #Contextualise the question using history
+        #Connect the question with prev history
         if chat_history:
             standalone_result = contextualise_chain.invoke({
                 "chat_history": chat_history,

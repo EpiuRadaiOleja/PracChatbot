@@ -226,7 +226,7 @@ def guard_rail(text: str) -> dict:
     results = guard_pipe(text, truncation=True, max_length=512)[0]
 
     is_safe = True
-    if results['label'].lower() == 'toxic' and results['score'] > 0.5:
+    if results['label'].lower() == 'toxic' and results['score'] > 0.6:
         is_safe = False
 
     return {
