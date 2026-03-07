@@ -5,15 +5,19 @@ build/
 .DS_Store
 *.log
 \n+# Python virtual env
-venv/
+langchainBots/
 \n+# Byte-compiled / cache
 __pycache__/
-.venv/
+.langchainBots/
 MENTAL_CHAT-V1/VecDBs
 MENTAL_CHAT-V1/Knowledge_Base
 chroma_db
 docs
 source_pdfs
 MENTAL_CHAT-V1/CodeScripts/Retrieval_N_CHat.py
+MENTAL_CHAT-V1/CodeScripts/RETRIEVAL_CHAT_TESTS.py
+MENTAL_CHAT-V1/CodeScripts/RETRIEVAL_TESTS.py
+MENTAL_CHAT-V1/CodeScripts/dashboard.py
+MENTAL_CHAT-V1/CodeScripts/demo_dash.py
 chroma_vecStore
 Learning_TestScript_2.py

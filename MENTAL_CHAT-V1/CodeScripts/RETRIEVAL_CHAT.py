@@ -27,14 +27,14 @@ def retriever(query, top_k=10):
     results = collection.query(query_embeddings=query_embedding, n_results=top_k)
     retrieved_ids = results["ids"][0]
     retrieved_texts = results["documents"][0]
-
+    retrieved_texts
     return retrieved_ids, retrieved_texts
 
 def retrieval_basedon_query(query, n_results=5):
     
     retrieved_ids, retrieved_texts = retriever(query, top_k=10)
     context = "\n\n".join(retrieved_texts[:n_results])
-
+    context
     return context
 
 template="""
@@ -48,7 +48,7 @@ Here is the retrieved context: {context}
 
 Answer:
 Let your answers be clear, concise and directly relevant to the user query
-
+Let it also include the sources as references/citation.
 
 """
 

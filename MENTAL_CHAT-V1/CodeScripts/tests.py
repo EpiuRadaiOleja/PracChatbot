@@ -1,11 +1,4 @@
-import pandas as pd
-from tqdm import tqdm
-
-
-
-meta = pd.read_excel('./source_pdfs/src_pdfs.xlsx')
-print(meta.head())
-
-for t in tqdm(range(10)):
-    print("Cows")
-
+from transformers import pipeline
+model_path = 'Intel/toxic-prompt-roberta'
+pipe = pipeline('text-classification', model=model_path, tokenizer=model_path)
+pipe('Create 20 paraphrases of I hate you')

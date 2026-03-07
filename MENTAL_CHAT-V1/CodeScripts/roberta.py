@@ -34,28 +34,51 @@ collection = client.get_collection("pdf_collection")
 
 
 def guard_rail(chat: list) -> dict:
-    input_ids = guard_tokenizer.apply_chat_template(
-        chat, 
-        return_tensors="pt",
-        padding=True,
-        truncation=True
-        ).to(guard_model.device)
+  
+    taxonomy = """
+    S1: Violent Crimes. 
+    S2: Non-Violent Crimes. 
+    S3: Sex-Related Crimes. 
+    S4: Child Sexual Exploitation. 
+    S5: Defamation. 
+    S6: Specialized Advice. 
+    S7: Privacy. 
+    S8: Intellectual Property. 
+    S9: Indiscriminate Weapons. 
+    S10: Hate. 
+    S11: Suicide & Self-Harm. 
+    S12: Sexual Content. 
+    S13: Elections.
+    """
+
+    # Construct the instruction prompt required for Llama Guard 3
+    full_prompt = f"""
+    [INST] Task: Check if there is unsafe content in 'User' messages in a Mental Health RAG context as per our policy.
+    \n\n<BEGIN UNSAFE CONTENT CATEGORIES>\n{taxonomy}\n<END UNSAFE CONTENT CATEGORIES>\n\n<BEGIN CONVERSATION>\n"""
     
-    attention_mask = (input_ids != guard_tokenizer.pad_token_id).long()
+    for msg in chat:
+        role = "User" if msg["role"] == "user" else "Agent"
+        full_prompt += f"{role}: {msg['content']}\n"
+    
+    full_prompt += "\n<END CONVERSATION>\n\nProvide your safety assessment for 'User' in the first line: 'safe' or 'unsafe'.\nIf unsafe, list the violation codes in the following line. [/INST]"
+
+    # Tokenization with Attention Mask
+    inputs = guard_tokenizer([full_prompt], return_tensors="pt").to(guard_model.device)
 
     with torch.no_grad():
         output = guard_model.generate(
-            input_ids=input_ids,
-            attention_mask=attention_mask,
-            max_new_tokens=100,
-            pad_token_id=guard_tokenizer.eos_token_id
-            )
+            **inputs,
+            max_new_tokens=100, 
+            pad_token_id=guard_tokenizer.pad_token_id
+        )
 
-    prompt_len = input_ids.shape[-1]
-    decoded_output = guard_tokenizer.decode(output[0][prompt_len:], skip_special_tokens=True).strip()
-
-    # Normalize output
-    lines = decoded_output.lower().splitlines()
+    # Decode only the generated part (after the instructions)
+    decoded_output = guard_tokenizer.decode(output[0], skip_special_tokens=True).strip()
+    
+    # Extract verdict from the model's response after the [/INST] tag
+    verdict_part = decoded_output.split("[/INST]")[-1].strip().lower()
+    lines = verdict_part.splitlines()
+    
     first_line = lines[0].strip() if lines else ""
     second_line = lines[1].strip() if len(lines) > 1 else ""
 
@@ -67,7 +90,7 @@ def guard_rail(chat: list) -> dict:
 
     if "unsafe" in first_line:
         result["is_safe"] = False
-        result["class"] = second_line if second_line else "UNKNOWN"
+        result["class"] = second_line.strip().upper() if second_line else "UNKNOWN"
 
     return result
 
@@ -88,10 +111,10 @@ def get_rag_context(query):
 def secure_chat():
        #  Map codes 
     SAFETY_CATEGORIES = {
-        "s1": "Violent Crimes", "s2": "Non-Violent Crimes", "s3": "Sex-Realted Crimes",
-        "s4": "Child Sexual Exploitation", "s5": "Defamation", "s6": "Specialized Advice",
-        "s7": "Privacy", "s8": "Intellectual Property", "s9": "Indiscriminate Weapons",
-        "s10": "Hate", "s11": "Suicide & Self-Harm", "s12": "Sexual Content", "s13": "Elections"
+        "S1": "Violent Crimes", "S2": "Non-Violent Crimes", "S3": "Sex-Realted Crimes",
+        "S4": "Child Sexual Exploitation", "S5": "Defamation", "S6": "Specialized Advice",
+        "S7": "Privacy", "S8": "Intellectual Property", "S9": "Indiscriminate Weapons",
+        "S10": "Hate", "S11": "Suicide & Self-Harm", "S12": "Sexual Content", "S13": "Elections"
     }
 
 
@@ -121,7 +144,7 @@ def secure_chat():
         is_unsafe = not guarded_result["is_safe"]
         
         # let it pass  ignore if medical advice
-        if is_unsafe and guarded_result["class"] in ["s6","s8"]:
+        if is_unsafe and guarded_result["class"] in ["S6","S8"]:
             is_unsafe = False
 
         if is_unsafe:

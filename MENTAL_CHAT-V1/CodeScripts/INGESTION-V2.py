@@ -20,7 +20,7 @@ def load_documents_with_metadata(docs_path="source_pdfs", meta_csv="source_pdfs/
 
     meta = pd.read_csv(meta_csv)
     if 'PDF NAME' not in meta.columns:
-        raise ValueError("The metadata CSV must have a 'PDF NAME' column with the exact PDF filenames.")
+        raise ValueError("The metadata CSV must have a 'PDF NAME' column.")
 
     pdf_files = [f for f in os.listdir(docs_path) if f.endswith('.pdf')]
     meta_pdfs = meta['PDF NAME'].tolist()
@@ -54,7 +54,7 @@ def load_documents_with_metadata(docs_path="source_pdfs", meta_csv="source_pdfs/
  
 
 # Chunking method (metadata is already attached)
-def split_documents(documents, chunk_size=1000, chunk_overlap=10):
+def split_documents(documents, chunk_size=1000, chunk_overlap=200):
     print("Splitting Documents into chunks....")
     Recursivetext_splitter = RecursiveCharacterTextSplitter(
         separators=["\n\n","\n", ".", ","],
@@ -103,7 +103,7 @@ def create_vectorStore(chunks, persist_directory="chroma_vecStore"):
 
 
 def main():
-    
+
     db_path = "chroma_vecStore"
     meta_csv = "source_pdfs/src_pdfs_csv.csv"
     if os.path.exists(db_path):
