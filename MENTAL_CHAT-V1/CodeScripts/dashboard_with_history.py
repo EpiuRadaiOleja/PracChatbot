@@ -297,7 +297,7 @@ qa_template = ChatPromptTemplate.from_messages([
      "You are a Mental health / Psychology / Psychiatry information RAG chatbot.\n"
      "ONLY answer the user's query based on the retrieved context provided to you.\n"
      "Let your answers be clear, concise and directly relevant to the user query.\n"
-     "Include all the sources as references/citations.\n\n"
+     "Include all the sources as citations BASING ON the metadata passed.\n\n"
      "Retrieved context:\n{context}"),
     MessagesPlaceholder(variable_name="chat_history"),
     ("human", "{input}")
